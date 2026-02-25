@@ -1,4 +1,5 @@
-﻿using Microsoft.CSharp;
+﻿
+using Microsoft.CSharp;
 using System;
 using System.CodeDom.Compiler;
 using System.Drawing;
@@ -10,13 +11,46 @@ namespace new2026
 {
     public partial class Form1 : Form
     {
+        private ToolStripStatusLabel toolStripStatusLabel;
+        private StatusStrip statusStrip;
+
+
         public Form1()
         {
             InitializeComponent();
+            txtInput.AllowDrop = true;
+            txtInput.DragEnter += TxtInput_DragEnter;
+            txtInput.DragDrop += TxtInput_DragDrop;
+            InitializeStatusStrip();
+
+        }
+        private void InitializeStatusStrip()
+        {
+            statusStrip = new StatusStrip();
+
+            // Создаем метку для отображения текста
+            toolStripStatusLabel = new ToolStripStatusLabel();
+            toolStripStatusLabel.Text = "Готов";
+            toolStripStatusLabel.TextAlign = ContentAlignment.MiddleLeft;
+
+            // Добавляем метку в строку состояния
+            statusStrip.Items.Add(toolStripStatusLabel);
+
+            // Добавляем строку состояния на форму
+            this.Controls.Add(statusStrip);
+        }
+
+        private void UpdateStatus(string message)
+        {
+            if (toolStripStatusLabel != null)
+            {
+                toolStripStatusLabel.Text = message;
+            }
         }
 
         private void StartButton_Click(object sender, EventArgs e)
         {
+            UpdateStatus("Компиляция");
             txtOutput.Text = "";
 
             try
@@ -57,6 +91,7 @@ namespace new2026
 
                     if (mainMethod != null)
                     {
+                        UpdateStatus("Готово");
                         StringWriter writer = new StringWriter();
                         TextWriter oldOutput = Console.Out;
                         Console.SetOut(writer);
@@ -69,7 +104,7 @@ namespace new2026
 
                             if (output == "")
                             {
-                                txtOutput.Text = "Программа выполнена!";
+                                txtOutput.Text = "Программа выполнена";
                             }
                             else
                             {
@@ -78,6 +113,7 @@ namespace new2026
                         }
                         catch (Exception ex)
                         {
+                            UpdateStatus("Ошибка");
                             txtOutput.Text = "Ошибка: " + ex.Message;
                         }
                         finally
@@ -102,10 +138,11 @@ namespace new2026
         {
             OpenFileDialog openFile = new OpenFileDialog();
             openFile.Filter = "Text Files (*.txt)|*.txt|All files (*.*)|*.*";
+            UpdateStatus("Файл загружен");
 
             if (openFile.ShowDialog() == DialogResult.OK)
             {
-                txtInput.Text = File.ReadAllText(openFile.FileName);
+                txtInput.Text = System.IO.File.ReadAllText(openFile.FileName);
 
             }
         }
@@ -119,10 +156,11 @@ namespace new2026
         {
             SaveFileDialog saveFile = new SaveFileDialog();
             saveFile.Filter = "Text Files (*.txt)|*.txt|All files (*.*)|*.*";
+            UpdateStatus("Файл сохранен");
 
             if (saveFile.ShowDialog() == DialogResult.OK)
             {
-                File.WriteAllText(saveFile.FileName, txtInput.Text);
+                System.IO.File.WriteAllText(saveFile.FileName, txtInput.Text);
             }
         }
 
@@ -179,5 +217,92 @@ namespace new2026
             txtInput.Font = new Font(txtInput.Font.FontFamily, newSize, txtInput.Font.Style);
             txtOutput.Font = new Font(txtOutput.Font.FontFamily, newSize, txtOutput.Font.Style);
         }
+        private void TxtInput_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+                e.Effect = DragDropEffects.Copy;
+        }
+
+        private void TxtInput_DragDrop(object sender, DragEventArgs e)
+        {
+            string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+            if (files.Length > 0)
+                txtInput.Text = System.IO.File.ReadAllText(files[0]);
+        }
+
+        private void btnEnglish_Click(object sender, EventArgs e)
+        {
+            btnStart.Text = "Run";
+            btnAdd.Text = "New";
+            btnOpen.Text = "Open";
+            btnSave.Text = "Save";
+            btnCopy.Text = "Copy";
+            btnInsert.Text = "Paste";
+            btnCut.Text = "Cut";
+            btnCancel.Text = "Cancel";
+            btnRepeat.Text = "Repeat";
+            Exit.Text = "Exit";
+            File.Text = "File";
+            menuAdd.Text = "Create";
+            menuOpen.Text = "Open";
+            menuSave.Text = "Save";
+            menuSaveAs.Text = "Save as";
+            Edit.Text = "Editing";
+            menuCancel.Text = "Cancel";
+            menuRepeat.Text = "Repeat";
+            menuCut.Text = "Cut";
+            menuCopy.Text = "Copy";
+            menuInsert.Text = "Insert";
+            menuDelete.Text = "Delete";
+            menuDeleteAll.Text = "Delete all";
+            Start.Text = "Start";
+            Reference.Text = "Reference";
+            menuReference.Text = "Call for help";
+            menuAbout.Text = "About program";
+            Language.Text = "Language";
+            Font.Text = "Font size";
+        }
+
+        private void btnRussian_Click(object sender, EventArgs e)
+        {
+            btnStart.Text = "Запуск";
+            btnAdd.Text = "Новый";
+            btnOpen.Text = "Открыть";
+            btnSave.Text = "Сохранить";
+            btnCopy.Text = "Копировать";
+            btnInsert.Text = "Вставить";
+            btnCut.Text = "Вырезать";
+            btnCancel.Text = "Отменить";
+            btnRepeat.Text = "Повторить";
+            Exit.Text = "Выход";
+            File.Text = "Файл";
+            menuAdd.Text = "Создать";
+            menuOpen.Text = "Открыть";
+            menuSave.Text = "Сохранить";
+            menuSaveAs.Text = "Сохранить как";
+            Edit.Text = "Правка";
+            menuCancel.Text = "Отмена";
+            menuRepeat.Text = "Возврат";
+            menuCut.Text = "Вырезать";
+            menuCopy.Text = "Копировать";
+            menuInsert.Text = "Вставить";
+            menuDelete.Text = "Удалить";
+            menuDeleteAll.Text = "Удалить все";
+            Start.Text = "Пуск";
+            Reference.Text = "Справка";
+            menuReference.Text = "Вызов справки";
+            menuAbout.Text = "О программе";
+            Language.Text = "Язык";
+            Font.Text = "Размер шрифта";
+
+
+
+        }
+
+        private void statusStrip_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        {
+
+        }
     }
+
 }
