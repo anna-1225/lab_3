@@ -5,8 +5,4 @@
 + Сущих Анна Александровна
 + Группа: АП-326
 
-```
-dotnet restore
-dotnet build
-dotnet run
-```
+
