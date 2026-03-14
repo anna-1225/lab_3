@@ -17,41 +17,23 @@ namespace new2026
         public Form1()
         {
             InitializeComponent();
-            // Просто скрываем txtOutput
-
-            // Показываем dataGridView1 (он должен быть на форме)
-            dataGridView1.Visible = true;
-            dataGridView1.BringToFront(); // Чтобы был поверх
             txtInput.AllowDrop = true;
 
             txtInput.DragEnter += TxtInput_DragEnter;
             txtInput.DragDrop += TxtInput_DragDrop;
 
-            // Настройка DataGridView
             SetupDataGridView();
-
-            // Добавляем обработчик двойного клика по таблице
             dataGridView1.CellDoubleClick += DataGridView1_CellDoubleClick;
         }
 
         private void SetupDataGridView()
         {
-            // Очищаем столбцы
             dataGridView1.Columns.Clear();
-
-            // Добавляем столбцы
             dataGridView1.Columns.Add("Code", "Код");
             dataGridView1.Columns.Add("Type", "Тип");
             dataGridView1.Columns.Add("Value", "Лексема");
             dataGridView1.Columns.Add("Location", "Местоположение");
 
-            // Настройка внешнего вида
-            dataGridView1.AllowUserToAddRows = false;
-            dataGridView1.AllowUserToDeleteRows = false;
-            dataGridView1.ReadOnly = true;
-            dataGridView1.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dataGridView1.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            dataGridView1.RowHeadersVisible = false;
         }
 
         private void DataGridView1_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
@@ -60,10 +42,8 @@ namespace new2026
 
             var token = _lastTokens[e.RowIndex];
 
-            // Простой переход к строке
             txtInput.Focus();
 
-            // Находим позицию в тексте
             int pos = 0;
             string[] lines = txtInput.Text.Split('\n');
             for (int i = 0; i < token.Line - 1; i++)
@@ -103,8 +83,6 @@ namespace new2026
 
         private void StartButton()
         {
-
-            // Очищаем таблицу
             dataGridView1.Rows.Clear();
 
             try
@@ -113,21 +91,20 @@ namespace new2026
                 Scanner scanner = new Scanner();
                 var tokens = scanner.Analyze(code);
 
-                // Сохраняем токены
                 _lastTokens = tokens;
 
                 bool hasErrors = false;
 
                 foreach (var token in tokens)
                 {
-                    // Формируем строку местоположения
                     string location;
-                    if (token.Position == 0)
-                        location = $"строка {token.Line}";
-                    else
-                        location = $"строка {token.Line}, позиция {token.Position}";
+                    int endPosition = token.Position + token.Value.Length - 1;
 
-                    // Добавляем строку в таблицу
+                    if (token.Position == endPosition)
+                        location = $"строка {token.Line}, {token.Position}-{endPosition}";
+                    else
+                        location = $"строка {token.Line}, {token.Position}-{endPosition}";
+
                     int rowIndex = dataGridView1.Rows.Add(
                         token.Code,
                         token.Type,
@@ -135,7 +112,6 @@ namespace new2026
                         location
                     );
 
-                    // Подсвечиваем ошибки красным
                     if (token.IsError)
                     {
                         dataGridView1.Rows[rowIndex].DefaultCellStyle.ForeColor = Color.Red;
@@ -143,18 +119,12 @@ namespace new2026
                     }
                 }
 
-                // Добавляем итоговую строку
                 int summaryRowIndex = dataGridView1.Rows.Add(
-                    "ИТОГО:",
-                    "",
                     $"Всего лексем: {tokens.Count}",
-                    hasErrors ? "Есть ошибки!" : "Ошибок нет"
+                    hasErrors ? "Есть ошибки!" : "Ошибок нет",
+                    "",
+                    ""
                 );
-
-                // Выделяем итоговую строку жирным
-                dataGridView1.Rows[summaryRowIndex].DefaultCellStyle.Font =
-                    new Font(dataGridView1.Font, FontStyle.Bold);
-
             }
             catch (Exception ex)
             {
@@ -264,7 +234,6 @@ namespace new2026
             }
         }
 
-        // Обработчики кнопок
         private void StartButton_Click(object sender, EventArgs e)
         {
             StartButton();
@@ -510,6 +479,37 @@ namespace new2026
         private void menuSave_Click(object sender, EventArgs e)
         {
             SaveButton();
+        }
+
+        private void btnHelp_Click(object sender, EventArgs e)
+        {
+            string helpText =
+                "Описание функций приложения\n" +
+                "Основные функции компилятора:\n" +
+                "- Запуск кода - выполняет лексический анализ\n" +
+                "- Результат отображается в таблице\n\n" +
+
+                "Работа с файлами:\n" +
+                "- Создать - очищает поле ввода\n" +
+                "- Открыть - загружает код из текстового файла\n" +
+                "- Сохранить - сохраняет код в файл\n\n" +
+
+                "Редактирование текста:\n" +
+                "- Отменить/Повторить - отмена/повтор действий\n" +
+                "- Вырезать/Копировать/Вставить - работа с буфером\n" +
+                "- Удалить/Удалить все - удаление текста\n\n" +
+
+                "Таблица результатов:\n" +
+                "- Двойной клик по строке - переход к месту в коде\n" +
+                "- Ошибки выделены красным цветом\n" +
+                "- В последней строке итоговая информация\n\n" +
+
+                "Дополнительно:\n" +
+                "- Изменение размера шрифта\n" +
+                "- Смена языка интерфейса";
+
+            MessageBox.Show(helpText, "Справка по функциям",
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }

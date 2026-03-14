@@ -16,7 +16,6 @@ namespace new2026
 
     public class Scanner
     {
-        // Вместо HashSet используем строки для проверки
         private const string _letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
         private const string _digits = "0123456789";
         private const string _operators = "=<>!+-*/";
@@ -24,7 +23,6 @@ namespace new2026
 
         private readonly string[] _keywords = new string[] { "if", "else" };
 
-        // Метод для проверки наличия символа в строке
         private bool ContainsChar(string str, char c)
         {
             for (int i = 0; i < str.Length; i++)
@@ -35,7 +33,6 @@ namespace new2026
             return false;
         }
 
-        // Метод для проверки ключевого слова
         private bool IsKeyword(string word)
         {
             for (int i = 0; i < _keywords.Length; i++)
@@ -63,9 +60,8 @@ namespace new2026
                     continue;
                 }
 
-                int startPos = pos;
+                int startPos = pos + 1;
 
-                // Проверка на цифру
                 if (ContainsChar(_digits, c))
                 {
                     string num = "";
@@ -93,7 +89,6 @@ namespace new2026
                     });
                 }
 
-                // Проверка на букву
                 else if (ContainsChar(_letters, c))
                 {
                     string word = "";
@@ -117,7 +112,6 @@ namespace new2026
                         tokens.Add(new Token { Code = 2, Type = "Идентификатор", Value = word, Line = line, Position = startPos });
                 }
 
-                // Проверка на оператор
                 else if (ContainsChar(_operators, c))
                 {
                     if (pos + 1 < text.Length && ContainsChar(_operators, text[pos + 1]) &&
@@ -134,14 +128,12 @@ namespace new2026
                     }
                 }
 
-                // Проверка на разделитель
                 else if (ContainsChar(_delimiters, c))
                 {
                     tokens.Add(new Token { Code = 5, Type = "Разделитель", Value = c.ToString(), Line = line, Position = startPos });
                     pos++;
                 }
 
-                // Обработка ошибки
                 else
                 {
                     tokens.Add(new Token
