@@ -19,22 +19,18 @@ namespace new2026
         {
             InitializeComponent();
             SetupDataGridView();
-            SetupMatchCountLabel();
             txtInput.AllowDrop = true;
             txtInput.DragEnter += TxtInput_DragEnter;
             txtInput.DragDrop += TxtInput_DragDrop;
+            SetupMatchCountLabel();
         }
-
-        private void SetupMatchCountLabel()
+        private void SetupMatchCountLabel() 
         {
             lblMatchCount = new Label();
-            lblMatchCount.Location = new Point(10, 10);
-            lblMatchCount.Size = new Size(200, 25);
             lblMatchCount.Text = "Найдено: 0";
-            lblMatchCount.Font = new Font("Microsoft Sans Serif", 10, FontStyle.Bold);
-            lblMatchCount.ForeColor = Color.Blue;
             this.Controls.Add(lblMatchCount);
         }
+
 
         private void SetupDataGridView()
         {
@@ -49,7 +45,6 @@ namespace new2026
             dgvResults.SelectionChanged += DgvResults_SelectionChanged;
         }
 
-        // Существующий метод поиска логинов
         private void SearchForLogins()
         {
             try
@@ -66,8 +61,7 @@ namespace new2026
                 dgvResults.Rows.Clear();
                 RemoveHighlight();
 
-                // РВ для логинов: начинается с буквы, затем буквы, цифры, точки или дефисы
-                string pattern = @"^[a-zA-Z][a-zA-Z0-9.-]*$";
+                string pattern = @"^[a-zA-Z][a-zA-Z0-9._-]*$";
 
                 string[] lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
 
@@ -122,7 +116,6 @@ namespace new2026
             }
         }
 
-        // НОВЫЙ МЕТОД 1: Поиск чисел (положительные, отрицательные, целые и с плавающей точкой)
         private void SearchForNumbers()
         {
             try
@@ -139,11 +132,6 @@ namespace new2026
                 dgvResults.Rows.Clear();
                 RemoveHighlight();
 
-                // РВ для чисел:
-                // ^[+-]? - опциональный знак + или -
-                // \d+ - одна или более цифр
-                // (?:[.,]\d+)? - опциональная дробная часть с разделителем . или ,
-                // (?:[eE][+-]?\d+)? - опциональная экспоненциальная часть
                 string pattern = @"[-+]?\d+(?:[.,]\d+)?(?:[eE][+-]?\d+)?";
 
                 RegexOptions options = RegexOptions.None;
@@ -196,7 +184,6 @@ namespace new2026
             }
         }
 
-        // НОВЫЙ МЕТОД 2: Поиск денежных сумм в разных валютах
         private void SearchForMoney()
         {
             try
@@ -213,12 +200,6 @@ namespace new2026
                 dgvResults.Rows.Clear();
                 RemoveHighlight();
 
-                // РВ для денежных сумм в разных валютах:
-                // (?:USD|EUR|RUB|GBP|JPY|CNY|UAH|KZT|BYN|PLN|CHF|CAD|AUD|SGD|HKD|TRY|INR|BRL|ZAR|NOK|SEK|DKK|CZK|HUF|RON|MXN|ILS|SAR|AED|KRW|THB|MYR|IDR|PHP|VND|EGP|NGN|PKR|BDT|LKR|MMK|UZS|TMT|GEL|AZN|AMD|MDL|KGS|TJS|EUR|USD|GBP) - коды валют
-                // |[€$£¥₽₴₸฿₩₪₫₦₲₵₡₨₮₯₰₱₲₳₴₵₶₷₸₹₺₻₼₽₾₿] - символы валют
-                // \s* - опциональные пробелы
-                // (?:[+-]?\d+(?:[.,]\d+)?) - число (целое или дробное)
-                // (?:\s*(?:тыс|млн|млрд|trillion|billion|million|thousand))? - опциональные обозначения тысяч/миллионов
 
                 string pattern = @"(?:USD|EUR|RUB|GBP|JPY|CNY|UAH|KZT|BYN|PLN|CHF|CAD|AUD|SGD|HKD|TRY|INR|BRL|ZAR|NOK|SEK|DKK|CZK|HUF|RON|MXN|ILS|SAR|AED|KRW|THB|MYR|IDR|PHP|VND|EGP|NGN|PKR|BDT|LKR|MMK|UZS|TMT|GEL|AZN|AMD|MDL|KGS|TJS)[-]?\s*(?:[+-]?\d+(?:[.,]\d+)?)(?:\s*(?:тыс|млн|млрд|trillion|billion|million|thousand))?|(?:[€$£¥₽₴₸฿₩₪₫₦₲₵₡₨₮₯₰₱₲₳₴₵₶₷₸₹₺₻₼₽₾₿])\s*(?:[+-]?\d+(?:[.,]\d+)?)(?:\s*(?:тыс|млн|млрд|trillion|billion|million|thousand))?|(?:[+-]?\d+(?:[.,]\d+)?)\s*(?:USD|EUR|RUB|GBP|JPY|CNY|UAH|KZT|BYN|PLN|CHF|CAD|AUD|SGD|HKD|TRY|INR|BRL|ZAR|NOK|SEK|DKK|CZK|HUF|RON|MXN|ILS|SAR|AED|KRW|THB|MYR|IDR|PHP|VND|EGP|NGN|PKR|BDT|LKR|MMK|UZS|TMT|GEL|AZN|AMD|MDL|KGS|TJS)(?:\s*(?:тыс|млн|млрд|trillion|billion|million|thousand))?|(?:[+-]?\d+(?:[.,]\d+)?)\s*(?:[€$£¥₽₴₸฿₩₪₫₦₲₵₡₨₮₯₰₱₲₳₴₵₶₷₸₹₺₻₼₽₾₿])(?:\s*(?:тыс|млн|млрд|trillion|billion|million|thousand))?";
 
@@ -360,7 +341,6 @@ namespace new2026
             public string Value { get; set; }
         }
 
-        // Существующие методы (StartButton, OpenButton, AddButton и т.д.)
         private void StartButton()
         {
             txtOutput.Text = "";
@@ -525,8 +505,6 @@ namespace new2026
                 txtInput.Redo();
             }
         }
-
-        // Обработчики событий для кнопок (добавляем новые кнопки для поиска чисел и денег)
         private void StartButton_Click(object sender, EventArgs e)
         {
             StartButton();
@@ -599,37 +577,9 @@ namespace new2026
             }
         }
 
-        // Обработчики для поиска
-        private void btnSearch_Click(object sender, EventArgs e)
-        {
-            SearchForLogins();
-        }
-
-        private void btnSearch_Click_1(object sender, EventArgs e)
-        {
-            SearchForLogins();
-        }
-
-        private void btnSearch_Click_2(object sender, EventArgs e)
-        {
-            SearchForLogins();
-        }
-
         private void btnSearch_Click_3(object sender, EventArgs e)
         {
             SearchForLogins();
-        }
-
-        // НОВЫЕ обработчики для кнопок поиска чисел и денежных сумм
-        // Добавьте эти кнопки в дизайнере Forms или создайте их программно
-        private void btnSearchNumbers_Click(object sender, EventArgs e)
-        {
-            SearchForNumbers();
-        }
-
-        private void btnSearchMoney_Click(object sender, EventArgs e)
-        {
-            SearchForMoney();
         }
 
         private void btnEnglish_Click(object sender, EventArgs e)
