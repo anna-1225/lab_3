@@ -19,6 +19,7 @@ namespace new2026
             txtInput.AllowDrop = true;
             txtInput.DragEnter += TxtInput_DragEnter;
             txtInput.DragDrop += TxtInput_DragDrop;
+            txtOutput.Visible = false;
             DataGridView.Columns.Clear();
             DataGridView.CellClick += DataGridView_CellClick;
 
@@ -45,7 +46,7 @@ namespace new2026
 
                 if (parser.Errors.Count == 0)
                 {
-                    MessageBox.Show("Ошибок нет");
+                    MessageBox.Show(this, "Ошибок нет");
                 }
                 else
                 {

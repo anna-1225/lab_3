@@ -48,13 +48,19 @@ class Parser
 
     public void Parse()
     {
-        Statement();
+        while (Current != '\0')
+        {
+            SkipSpaces();
 
-        if (Current != '\0')
-            AddError(Current.ToString(), "Лишние символы в конце");
+            if (Current == '\0')
+                break;
+
+            Statement();
+
+            SkipSpaces();
+        }
     }
 
-    // stmt ::= id = expr ;
     private void Statement()
     {
         SkipSpaces();
@@ -71,7 +77,6 @@ class Parser
         Expect(";");
     }
 
-    // expr ::= id if condition else id
     private void Expression()
     {
         Identifier();
@@ -89,7 +94,6 @@ class Parser
         Identifier();
     }
 
-    // condition ::= id op id
     private void Condition()
     {
         Identifier();
@@ -168,13 +172,11 @@ class Parser
             {
                 int start = pos;
 
-                // 🔥 съедаем ВСЕ подряд '='
                 while (Current == '=')
                     Next();
 
                 int count = pos - start;
 
-                // если больше одного '=' → ошибка
                 if (count > 1)
                 {
                     string wrong = text.Substring(start, count);
@@ -191,7 +193,6 @@ class Parser
             }
         }
 
-        // обычная логика
         foreach (char c in symbol)
         {
             if (Current == c)
@@ -222,7 +223,6 @@ class Parser
                 string wrong = ReadInvalidSequence();
                 AddError(wrong, $"Ожидалось '{word}'");
 
-                AddError(wrong, $"Ожидалось '{word}'");
                 return;
             }
         }
