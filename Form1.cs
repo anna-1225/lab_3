@@ -1,8 +1,10 @@
-﻿using System;
+﻿
+using Microsoft.CSharp;
+using System;
+using System.CodeDom.Compiler;
 using System.Drawing;
 using System.IO;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
 namespace new2026
@@ -10,402 +12,62 @@ namespace new2026
     public partial class Form1 : Form
     {
         private string _currentFilePath = "";
-        private Color _highlightColor = Color.Yellow;
-        private int _currentHighlightStart = -1;
-        private int _currentHighlightLength = -1;
-        private Label lblMatchCount;
 
         public Form1()
         {
             InitializeComponent();
-            SetupDataGridView();
             txtInput.AllowDrop = true;
             txtInput.DragEnter += TxtInput_DragEnter;
             txtInput.DragDrop += TxtInput_DragDrop;
-            SetupMatchCountLabel();
-        }
-        private void SetupMatchCountLabel() 
-        {
-            lblMatchCount = new Label();
-            lblMatchCount.Text = "Найдено: 0";
-            this.Controls.Add(lblMatchCount);
-        }
+            DataGridView.Columns.Clear();
+            DataGridView.CellClick += DataGridView_CellClick;
 
+            DataGridView.Columns.Add("Fragment", "Неверный фрагмент");
+            DataGridView.Columns.Add("Position", "Местоположение");
+            DataGridView.Columns.Add("Message", "Описание ошибки");
 
-        private void SetupDataGridView()
-        {
-            dgvResults.Columns.Clear();
-            dgvResults.Columns.Add("MatchText", "Найденная подстрока");
-            dgvResults.Columns.Add("Position", "Позиция (строка, символ)");
-            dgvResults.Columns.Add("Length", "Длина");
-            dgvResults.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            dgvResults.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvResults.ReadOnly = true;
-            dgvResults.AllowUserToAddRows = false;
-            dgvResults.SelectionChanged += DgvResults_SelectionChanged;
-        }
-
-        private void SearchForLogins()
-        {
-            try
-            {
-                string text = txtInput.Text;
-
-                if (string.IsNullOrWhiteSpace(text))
-                {
-                    MessageBox.Show("Введите текст для поиска логинов.",
-                        "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                dgvResults.Rows.Clear();
-                RemoveHighlight();
-
-                string pattern = @"^[a-zA-Z][a-zA-Z0-9._-]*$";
-
-                string[] lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
-
-                RegexOptions options = RegexOptions.None;
-                Regex regex = new Regex(pattern, options);
-
-                int matchCount = 0;
-
-                for (int lineNum = 0; lineNum < lines.Length; lineNum++)
-                {
-                    string line = lines[lineNum];
-
-                    if (regex.IsMatch(line))
-                    {
-                        matchCount++;
-                        int rowIndex = dgvResults.Rows.Add(
-                            line,
-                            $"{lineNum + 1}, 1",
-                            line.Length
-                        );
-
-                        int globalPosition = GetGlobalPosition(text, lineNum, 0);
-
-                        dgvResults.Rows[rowIndex].Tag = new MatchInfo
-                        {
-                            Index = globalPosition,
-                            Length = line.Length,
-                            Value = line
-                        };
-                    }
-                }
-
-                lblMatchCount.Text = $"Найдено логинов: {matchCount}";
-
-                if (matchCount == 0)
-                {
-                    lblMatchCount.ForeColor = Color.Red;
-                    MessageBox.Show("Корректных логинов не найдено.", "Результат поиска",
-                        MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-                else
-                {
-                    lblMatchCount.ForeColor = Color.Green;
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при поиске: {ex.Message}",
-                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                lblMatchCount.Text = "Ошибка поиска";
-                lblMatchCount.ForeColor = Color.Red;
-            }
-        }
-
-        private void SearchForNumbers()
-        {
-            try
-            {
-                string text = txtInput.Text;
-
-                if (string.IsNullOrWhiteSpace(text))
-                {
-                    MessageBox.Show("Введите текст для поиска чисел.",
-                        "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                dgvResults.Rows.Clear();
-                RemoveHighlight();
-
-                string pattern = @"[-+]?\d+(?:[.,]\d+)?(?:[eE][+-]?\d+)?";
-
-                RegexOptions options = RegexOptions.None;
-                Regex regex = new Regex(pattern, options);
-
-                MatchCollection matches = regex.Matches(text);
-                int matchCount = 0;
-
-                foreach (Match match in matches)
-                {
-                    if (!string.IsNullOrWhiteSpace(match.Value))
-                    {
-                        matchCount++;
-                        string position = GetLineAndColumnPosition(text, match.Index);
-
-                        int rowIndex = dgvResults.Rows.Add(
-                            match.Value,
-                            position,
-                            match.Length
-                        );
-
-                        dgvResults.Rows[rowIndex].Tag = new MatchInfo
-                        {
-                            Index = match.Index,
-                            Length = match.Length,
-                            Value = match.Value
-                        };
-                    }
-                }
-
-                lblMatchCount.Text = $"Найдено чисел: {matchCount}";
-
-                if (matchCount == 0)
-                {
-                    lblMatchCount.ForeColor = Color.Red;
-                    MessageBox.Show("Чисел не найдено.", "Результат поиска",
-                        MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-                else
-                {
-                    lblMatchCount.ForeColor = Color.Green;
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при поиске чисел: {ex.Message}",
-                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                lblMatchCount.Text = "Ошибка поиска";
-                lblMatchCount.ForeColor = Color.Red;
-            }
-        }
-
-        private void SearchForMoney()
-        {
-            try
-            {
-                string text = txtInput.Text;
-
-                if (string.IsNullOrWhiteSpace(text))
-                {
-                    MessageBox.Show("Введите текст для поиска денежных сумм.",
-                        "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                dgvResults.Rows.Clear();
-                RemoveHighlight();
-
-                string[] lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
-
-                string fullLinePattern = @"^(?:USD|EUR|RUB|GBP|JPY|CNY)\s*(?:[+-]?\d+(?:[.,]\d+)?)$|^(?:[$€£¥₽])\s*(?:[+-]?\d+(?:[.,]\d+)?)$|^(?:[+-]?\d+(?:[.,]\d+)?)\s*(?:USD|EUR|RUB|GBP|JPY|CNY)$|^(?:[+-]?\d+(?:[.,]\d+)?)\s*(?:[$€£¥₽])$";
-
-                Regex regex = new Regex(fullLinePattern);
-                int matchCount = 0;
-
-                for (int lineNum = 0; lineNum < lines.Length; lineNum++)
-                {
-                    string line = lines[lineNum].Trim();
-
-                    if (regex.IsMatch(line))
-                    {
-                        matchCount++;
-                        int globalPosition = GetGlobalPosition(text, lineNum, 0);
-
-                        int rowIndex = dgvResults.Rows.Add(
-                            line,
-                            $"{lineNum + 1}, 1",
-                            line.Length
-                        );
-
-                        dgvResults.Rows[rowIndex].Tag = new MatchInfo
-                        {
-                            Index = globalPosition,
-                            Length = line.Length,
-                            Value = line
-                        };
-                    }
-                }
-
-                lblMatchCount.Text = $"Найдено денежных сумм: {matchCount}";
-                lblMatchCount.ForeColor = matchCount == 0 ? Color.Red : Color.Green;
-
-                if (matchCount == 0)
-                {
-                    MessageBox.Show("Денежных сумм не найдено.", "Результат поиска",
-                        MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при поиске денежных сумм: {ex.Message}",
-                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                lblMatchCount.Text = "Ошибка поиска";
-                lblMatchCount.ForeColor = Color.Red;
-            }
-        }
-
-        private int GetGlobalPosition(string text, int lineNumber, int columnNumber)
-        {
-            string[] lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
-            int position = 0;
-
-            for (int i = 0; i < lineNumber && i < lines.Length; i++)
-            {
-                position += lines[i].Length + Environment.NewLine.Length;
-            }
-
-            position += columnNumber;
-            return position;
-        }
-
-        private string GetLineAndColumnPosition(string text, int index)
-        {
-            int line = 1;
-            int column = 1;
-
-            for (int i = 0; i < index && i < text.Length; i++)
-            {
-                if (text[i] == '\n')
-                {
-                    line++;
-                    column = 1;
-                }
-                else if (text[i] != '\r')
-                {
-                    column++;
-                }
-            }
-
-            return $"{line}, {column}";
-        }
-
-        private void HighlightMatch(int startIndex, int length)
-        {
-            try
-            {
-                if (startIndex < 0 || length <= 0 || startIndex + length > txtInput.Text.Length)
-                    return;
-
-                RemoveHighlight();
-
-                txtInput.Focus();
-                txtInput.Select(startIndex, length);
-                txtInput.SelectionBackColor = _highlightColor;
-
-                _currentHighlightStart = startIndex;
-                _currentHighlightLength = length;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Ошибка подсветки: {ex.Message}");
-            }
-        }
-
-        private void RemoveHighlight()
-        {
-            if (_currentHighlightStart >= 0 && _currentHighlightLength > 0)
-            {
-                txtInput.Select(_currentHighlightStart, _currentHighlightLength);
-                txtInput.SelectionBackColor = Color.White;
-                txtInput.SelectionLength = 0;
-                _currentHighlightStart = -1;
-                _currentHighlightLength = -1;
-            }
-        }
-
-        private void DgvResults_SelectionChanged(object sender, EventArgs e)
-        {
-            if (dgvResults.SelectedRows.Count > 0)
-            {
-                MatchInfo matchInfo = dgvResults.SelectedRows[0].Tag as MatchInfo;
-                if (matchInfo != null)
-                {
-                    HighlightMatch(matchInfo.Index, matchInfo.Length);
-                }
-            }
-        }
-
-        private class MatchInfo
-        {
-            public int Index { get; set; }
-            public int Length { get; set; }
-            public string Value { get; set; }
         }
 
         private void StartButton()
         {
-            txtOutput.Text = "";
+            DataGridView.Rows.Clear();
+
+            if (string.IsNullOrWhiteSpace(txtInput.Text))
+            {
+                MessageBox.Show("Введите строку");
+                return;
+            }
 
             try
             {
-                string code = txtInput.Text;
+                Parser parser = new Parser(txtInput.Text);
+                parser.Parse();
 
-                if (code.Contains("Main") == false)
+                if (parser.Errors.Count == 0)
                 {
-                    code = "using System;\n";
-                    code = code + "class Program\n";
-                    code = code + "{\n";
-                    code = code + "    static void Main()\n";
-                    code = code + "    {\n";
-                    code = code + "        " + txtInput.Text + "\n";
-                    code = code + "    }\n";
-                    code = code + "}\n";
-                }
-
-                Microsoft.CSharp.CSharpCodeProvider compiler = new Microsoft.CSharp.CSharpCodeProvider();
-
-                System.CodeDom.Compiler.CompilerParameters parameters = new System.CodeDom.Compiler.CompilerParameters();
-                parameters.GenerateExecutable = true;
-                parameters.GenerateInMemory = true;
-                parameters.ReferencedAssemblies.Add("System.dll");
-
-                System.CodeDom.Compiler.CompilerResults results = compiler.CompileAssemblyFromSource(parameters, code);
-
-                if (results.Errors.Count > 0)
-                {
-                    foreach (System.CodeDom.Compiler.CompilerError error in results.Errors)
-                    {
-                        txtOutput.Text = txtOutput.Text + "Ошибка: " + error.ErrorText + "\n";
-                    }
+                    MessageBox.Show("Ошибок нет");
                 }
                 else
                 {
-                    MethodInfo mainMethod = results.CompiledAssembly.EntryPoint;
-
-                    if (mainMethod != null)
+                    foreach (var err in parser.Errors)
                     {
-                        StringWriter writer = new StringWriter();
-                        TextWriter oldOutput = Console.Out;
-                        Console.SetOut(writer);
+                        int rowIndex = DataGridView.Rows.Add(
+                            err.Fragment,
+                            $"Строка {err.Line}, позиция {err.Column}",
+                            err.Message
+                        );
 
-                        try
-                        {
-                            mainMethod.Invoke(null, null);
-                            string output = writer.ToString();
-                            txtOutput.Text = output;
-                        }
-                        catch (Exception ex)
-                        {
-                            txtOutput.Text = "Ошибка: " + ex.Message;
-                        }
-                        finally
-                        {
-                            Console.SetOut(oldOutput);
-                        }
+                        DataGridView.Rows[rowIndex].Tag = err;
                     }
+
+                    MessageBox.Show($"Найдено ошибок: {parser.Errors.Count}");
                 }
             }
             catch (Exception ex)
             {
-                txtOutput.Text = "Ошибка: " + ex.Message;
+                MessageBox.Show(ex.Message);
             }
         }
-
         private void OpenButton()
         {
             OpenFileDialog openFile = new OpenFileDialog();
@@ -415,17 +77,13 @@ namespace new2026
             {
                 txtInput.Text = System.IO.File.ReadAllText(openFile.FileName);
                 _currentFilePath = openFile.FileName;
+
             }
         }
-
         private void AddButton()
         {
             txtInput.Text = "";
-            dgvResults.Rows.Clear();
-            lblMatchCount.Text = "Найдено: 0";
-            RemoveHighlight();
         }
-
         private void SaveButton()
         {
             if (string.IsNullOrEmpty(_currentFilePath))
@@ -445,7 +103,6 @@ namespace new2026
                 }
             }
         }
-
         private void SaveAsButton()
         {
             SaveFileDialog saveFile = new SaveFileDialog();
@@ -457,7 +114,6 @@ namespace new2026
                 _currentFilePath = saveFile.FileName;
             }
         }
-
         private void CopyButton()
         {
             if (txtInput.SelectedText != "")
@@ -465,7 +121,6 @@ namespace new2026
                 Clipboard.SetText(txtInput.SelectedText);
             }
         }
-
         private void InsertButton()
         {
             if (Clipboard.ContainsText())
@@ -473,15 +128,17 @@ namespace new2026
                 txtInput.Text = txtInput.Text + Clipboard.GetText();
             }
         }
-
         private void CutButton()
         {
             if (txtInput.SelectedText != "")
             {
                 Clipboard.SetText(txtInput.SelectedText);
+
                 int selectionStart = txtInput.SelectionStart;
                 int selectionLength = txtInput.SelectionLength;
+
                 txtInput.Text = txtInput.Text.Remove(selectionStart, selectionLength);
+
                 txtInput.SelectionStart = selectionStart;
             }
         }
@@ -493,7 +150,6 @@ namespace new2026
                 txtInput.Undo();
             }
         }
-
         private void RepeatButton()
         {
             if (txtInput.CanRedo)
@@ -501,10 +157,8 @@ namespace new2026
                 txtInput.Redo();
             }
         }
-        private void StartButton_Click(object sender, EventArgs e)
-        {
-            StartButton();
-        }
+
+
 
         private void btnAdd_Click(object sender, EventArgs e)
         {
@@ -557,7 +211,6 @@ namespace new2026
             txtInput.Font = new Font(txtInput.Font.FontFamily, newSize, txtInput.Font.Style);
             txtOutput.Font = new Font(txtOutput.Font.FontFamily, newSize, txtOutput.Font.Style);
         }
-
         private void TxtInput_DragEnter(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
@@ -568,14 +221,7 @@ namespace new2026
         {
             string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
             if (files.Length > 0)
-            {
                 txtInput.Text = System.IO.File.ReadAllText(files[0]);
-            }
-        }
-
-        private void btnSearch_Click_3(object sender, EventArgs e)
-        {
-            SearchForLogins();
         }
 
         private void btnEnglish_Click(object sender, EventArgs e)
@@ -609,9 +255,6 @@ namespace new2026
             menuAbout.Text = "About program";
             Language.Text = "Language";
             Font.Text = "Font size";
-
-            if (lblMatchCount != null)
-                lblMatchCount.Text = $"Found: {int.Parse(lblMatchCount.Text.Split(':')[1].Trim())}";
         }
 
         private void btnRussian_Click(object sender, EventArgs e)
@@ -645,6 +288,9 @@ namespace new2026
             menuAbout.Text = "О программе";
             Language.Text = "Язык";
             Font.Text = "Размер шрифта";
+
+
+
         }
 
         private void menuAdd_Click(object sender, EventArgs e)
@@ -701,9 +347,6 @@ namespace new2026
         private void menuDeleteAll_Click(object sender, EventArgs e)
         {
             txtInput.Text = "";
-            dgvResults.Rows.Clear();
-            lblMatchCount.Text = "Найдено: 0";
-            RemoveHighlight();
         }
 
         private void Start_Click(object sender, EventArgs e)
@@ -711,13 +354,40 @@ namespace new2026
             StartButton();
         }
 
+        private void menuReference_Click_1(object sender, EventArgs e)
+        {
+            string helpText =
+                "Описание функций приложения\n" +
+
+                "Основные функции компилятора:\n" +
+                "- Запуск кода - компилирует и выполняет код\n" +
+                "- Автоматическое добавление структуры класса\n\n" +
+
+                "Работа с файлами:\n" +
+                "- Создать - очищает поле ввода\n" +
+                "- Открыть - загружает код из текстового файла\n" +
+                "- Сохранить - сохраняет код в файл\n\n" +
+
+                "Редактирование текста:\n" +
+                "- Отменить/Повторить - отмена/повтор действий\n" +
+                "- Вырезать/Копировать/Вставить - работа с буфером\n" +
+                "- Удалить/Удалить все - удаление текста\n\n" +
+
+                "Дополнительно:\n" +
+                "- Изменение размера шрифта\n" +
+                "- Смена языка интерфейса";
+
+            MessageBox.Show(helpText, "Справка по функциям",
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             DialogResult result = MessageBox.Show(
-                "Вы действительно хотите выйти из приложения?",
-                "Подтверждение выхода",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question);
+        "Вы действительно хотите выйти из приложения?",
+        "Подтверждение выхода",
+        MessageBoxButtons.YesNo,
+        MessageBoxIcon.Question);
 
             if (result == DialogResult.No)
             {
@@ -730,14 +400,35 @@ namespace new2026
             SaveButton();
         }
 
-        private void btnSearchNumbers_Click_1(object sender, EventArgs e)
-        {
-            SearchForNumbers();
-        }
 
-        private void btnSearchMoney_Click_1(object sender, EventArgs e)
+        private void btnStart_Click_1(object sender, EventArgs e)
         {
-            SearchForMoney();
+            StartButton();
+        }
+        private void DataGridView_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0) return;
+
+            var row = DataGridView.Rows[e.RowIndex];
+
+            if (row.Tag is ParseError err)
+            {
+                int index = err.Index;
+
+                if (index >= txtInput.TextLength)
+                    index = txtInput.TextLength - 1;
+
+                if (index < 0)
+                    index = 0;
+
+                txtInput.Focus();
+                txtInput.SelectionStart = index;
+                txtInput.SelectionLength = err.Length > 0 ? err.Length : 1;
+
+                txtInput.ScrollToCaret();
+            }
         }
     }
+
+
 }

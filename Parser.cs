@@ -1,105 +1,257 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
-using System.Windows.Forms;
 
-public class Parser
+class ParseError
 {
-    private List<Token> tokens;
-    private int pos = 0;
-    private DataGridView dgv;
+    public string Fragment { get; set; }
+    public int Line { get; set; }
+    public int Column { get; set; }
+    public string Message { get; set; }
+    public int Index { get; set; }
+    public int Length { get; set; }
+}
 
-    public Parser(string input, DataGridView dgvResults)
+class Parser
+{
+    private string text;
+    private int pos;
+    private int line = 1;
+    private int column = 1;
+
+    public List<ParseError> Errors = new List<ParseError>();
+
+    public Parser(string input)
     {
-        this.dgv = dgvResults;
-        tokens = Lexer.Tokenize(input);
+        text = input;
+        pos = 0;
     }
 
-    private Token Current => pos < tokens.Count ? tokens[pos] : new Token(TokenType.EOF, "", -1, -1);
+    private char Current => pos < text.Length ? text[pos] : '\0';
 
-    private void Scan() => pos++;
-
-    private void Error(string message)
+    private void Next()
     {
-        dgv.Rows.Add(Current.Value, $"строка {Current.Line}, позиция {Current.Column}", message);
-
-        // Нейтрализация по Айронсу — пропуск до безопасного токена
-        while (Current.Type != TokenType.EOF &&
-               Current.Type != TokenType.ID &&
-               Current.Type != TokenType.NUMBER)
+        if (Current == '\n')
         {
-            Scan();
+            line++;
+            column = 1;
         }
+        else column++;
+
+        pos++;
+    }
+
+    private void SkipSpaces()
+    {
+        while (char.IsWhiteSpace(Current))
+            Next();
     }
 
     public void Parse()
     {
-        dgv.Rows.Clear();
-        pos = 0;
+        Statement();
 
-        ParseStmt();
-
-        if (dgv.Rows.Count == 0)
-            MessageBox.Show("Ошибок не обнаружено");
+        if (Current != '\0')
+            AddError(Current.ToString(), "Лишние символы в конце");
     }
 
-    private void ParseStmt()
+    // stmt ::= id = expr ;
+    private void Statement()
     {
-        ParseAssign();
+        SkipSpaces();
+
+        Identifier();
+
+        SkipSpaces();
+        Expect("=");
+
+        SkipSpaces();
+        Expression();
+
+        SkipSpaces();
+        Expect(";");
     }
 
-    private void ParseAssign()
+    // expr ::= id if condition else id
+    private void Expression()
     {
-        if (Current.Type != TokenType.ID)
+        Identifier();
+
+        SkipSpaces();
+        ExpectWord("if");
+
+        SkipSpaces();
+        Condition();
+
+        SkipSpaces();
+        ExpectWord("else");
+
+        SkipSpaces();
+        Identifier();
+    }
+
+    // condition ::= id op id
+    private void Condition()
+    {
+        Identifier();
+
+        SkipSpaces();
+        Operator();
+
+        SkipSpaces();
+        Identifier();
+    }
+    private string ReadInvalidSequence()
+    {
+        int start = pos;
+
+        while (!char.IsLetterOrDigit(Current) &&
+               !char.IsWhiteSpace(Current) &&
+               Current != ';' &&
+               Current != '\0')
         {
-            Error("Ожидался идентификатор");
+            Next();
+        }
+
+        return text.Substring(start, pos - start);
+    }
+
+    private void Identifier()
+    {
+        if (!char.IsLetter(Current))
+        {
+            string wrong = ReadInvalidSequence();
+
+            if (string.IsNullOrEmpty(wrong))
+                wrong = Current.ToString();
+
+            AddError(wrong, "Ожидался идентификатор");
             return;
         }
 
-        Scan();
-
-        if (Current.Value != "=")
-        {
-            Error("Ожидался символ '='");
-            return;
-        }
-
-        Scan();
-        ParseCond();
+        while (char.IsLetterOrDigit(Current))
+            Next();
     }
 
-    private void ParseCond()
+    private void Operator()
     {
-        ParseExpr();
-
-        if (Current.Value != "if")
+        if (Current == '>' || Current == '<')
         {
-            Error("Ожидалось ключевое слово 'if'");
-            return;
+            Next();
         }
-
-        Scan();
-        ParseExpr();
-
-        if (Current.Value != "else")
+        else if (Current == '=' && Peek() == '=')
         {
-            Error("Ожидалось ключевое слово 'else'");
-            return;
+            Next(); Next();
         }
-
-        Scan();
-        ParseExpr();
-    }
-
-    private void ParseExpr()
-    {
-        if (Current.Type == TokenType.ID || Current.Type == TokenType.NUMBER)
+        else if (Current == '!' && Peek() == '=')
         {
-            Scan();
+            Next(); Next();
         }
         else
         {
-            Error("Ожидалось выражение (идентификатор или число)");
+            string wrong = ReadInvalidSequence();
+            AddError(wrong, "Ожидался оператор сравнения");
         }
+    }
+
+    private char Peek()
+    {
+        return pos + 1 < text.Length ? text[pos + 1] : '\0';
+    }
+
+    private void Expect(string symbol)
+    {
+        SkipSpaces();
+
+        if (symbol == "=")
+        {
+            if (Current == '=')
+            {
+                int start = pos;
+
+                // 🔥 съедаем ВСЕ подряд '='
+                while (Current == '=')
+                    Next();
+
+                int count = pos - start;
+
+                // если больше одного '=' → ошибка
+                if (count > 1)
+                {
+                    string wrong = text.Substring(start, count);
+                    AddError(wrong, "Лишние символы '='");
+                }
+
+                return;
+            }
+            else
+            {
+                string wrong = ReadInvalidSequence();
+                AddError(wrong, $"Ожидалось '{symbol}'");
+                return;
+            }
+        }
+
+        // обычная логика
+        foreach (char c in symbol)
+        {
+            if (Current == c)
+                Next();
+            else
+            {
+                AddError(Current.ToString(), $"Ожидалось '{symbol}'");
+                return;
+            }
+        }
+    }
+
+    private void ExpectWord(string word)
+    {
+        SkipSpaces();
+
+        int start = pos;
+
+        foreach (char c in word)
+        {
+            if (Current == c)
+                Next();
+            else
+            {
+                while (char.IsLetterOrDigit(Current))
+                    Next();
+
+                string wrong = ReadInvalidSequence();
+                AddError(wrong, $"Ожидалось '{word}'");
+
+                AddError(wrong, $"Ожидалось '{word}'");
+                return;
+            }
+        }
+
+        if (char.IsLetterOrDigit(Current))
+        {
+            while (char.IsLetterOrDigit(Current))
+                Next();
+
+            string wrong = text.Substring(start, pos - start);
+
+            AddError(wrong, $"Ожидалось '{word}'");
+        }
+    }
+
+
+    private void AddError(string fragment, string message)
+    {
+        if (string.IsNullOrEmpty(fragment) || fragment == "\0")
+            fragment = "EOF";
+
+        Errors.Add(new ParseError
+        {
+            Fragment = fragment,
+            Line = line,
+            Column = column,
+            Index = pos,             
+            Length = fragment.Length, 
+            Message = message
+        });
     }
 }
