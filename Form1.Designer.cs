@@ -68,7 +68,7 @@
             this.btnSize = new System.Windows.Forms.NumericUpDown();
             this.Font = new System.Windows.Forms.Label();
             this.panel1 = new System.Windows.Forms.Panel();
-            this.DataGridView = new System.Windows.Forms.DataGridView();
+            this.dgvResults = new System.Windows.Forms.DataGridView();
             this.colFragment = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.colLocation = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.colDescription = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -78,7 +78,7 @@
             this.toolStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.btnSize)).BeginInit();
             this.panel1.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.DataGridView)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvResults)).BeginInit();
             this.SuspendLayout();
             // 
             // menuStrip1
@@ -211,6 +211,7 @@
             this.Start.Name = "Start";
             this.Start.Size = new System.Drawing.Size(55, 24);
             this.Start.Text = "Пуск";
+            this.Start.Click += new System.EventHandler(this.Start_Click_1);
             // 
             // Reference
             // 
@@ -371,7 +372,7 @@
             this.btnStart.Name = "btnStart";
             this.btnStart.Size = new System.Drawing.Size(29, 24);
             this.btnStart.Text = "Пуск";
-            this.btnStart.Click += new System.EventHandler(this.btnStart_Click_1);
+            this.btnStart.Click += new System.EventHandler(this.btnStart_Click);
             // 
             // btnHelp
             // 
@@ -437,7 +438,7 @@
             // panel1
             // 
             this.panel1.BackColor = System.Drawing.SystemColors.Control;
-            this.panel1.Controls.Add(this.DataGridView);
+            this.panel1.Controls.Add(this.dgvResults);
             this.panel1.Controls.Add(this.txtOutput);
             this.panel1.Controls.Add(this.txtInput);
             this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -446,21 +447,21 @@
             this.panel1.Size = new System.Drawing.Size(1267, 507);
             this.panel1.TabIndex = 7;
             // 
-            // DataGridView
+            // dgvResults
             // 
-            this.DataGridView.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
-            this.DataGridView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.DataGridView.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.dgvResults.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            this.dgvResults.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dgvResults.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.colFragment,
             this.colLocation,
             this.colDescription});
-            this.DataGridView.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.DataGridView.Location = new System.Drawing.Point(0, 179);
-            this.DataGridView.Name = "DataGridView";
-            this.DataGridView.RowHeadersWidth = 51;
-            this.DataGridView.RowTemplate.Height = 24;
-            this.DataGridView.Size = new System.Drawing.Size(1267, 328);
-            this.DataGridView.TabIndex = 4;
+            this.dgvResults.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.dgvResults.Location = new System.Drawing.Point(0, 179);
+            this.dgvResults.Name = "dgvResults";
+            this.dgvResults.RowHeadersWidth = 51;
+            this.dgvResults.RowTemplate.Height = 24;
+            this.dgvResults.Size = new System.Drawing.Size(1267, 328);
+            this.dgvResults.TabIndex = 4;
             // 
             // colFragment
             // 
@@ -517,7 +518,7 @@
             this.toolStrip1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.btnSize)).EndInit();
             this.panel1.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.DataGridView)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvResults)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -566,7 +567,7 @@
         private System.Windows.Forms.ToolStripMenuItem menuRepeat;
         private System.Windows.Forms.RichTextBox txtOutput;
         private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.DataGridView DataGridView;
+        private System.Windows.Forms.DataGridView dgvResults;
         private System.Windows.Forms.DataGridViewTextBoxColumn colFragment;
         private System.Windows.Forms.DataGridViewTextBoxColumn colLocation;
         private System.Windows.Forms.DataGridViewTextBoxColumn colDescription;

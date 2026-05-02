@@ -19,61 +19,78 @@ namespace new2026
             txtInput.AllowDrop = true;
             txtInput.DragEnter += TxtInput_DragEnter;
             txtInput.DragDrop += TxtInput_DragDrop;
-            txtOutput.Visible = false;
-            DataGridView.Columns.Clear();
-            DataGridView.CellClick += DataGridView_CellClick;
+            dgvResults.ReadOnly = true;
+            dgvResults.AllowUserToAddRows = false;
+            dgvResults.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            btnStart.Click += btnStart_Click;
 
-            DataGridView.Columns.Add("Fragment", "Неверный фрагмент");
-            DataGridView.Columns.Add("Position", "Местоположение");
-            DataGridView.Columns.Add("Message", "Описание ошибки");
+
+            dgvResults.CellClick += dgvResults_CellClick;
 
         }
 
+        private bool AskToSave()
+        {
+            if (string.IsNullOrWhiteSpace(txtInput.Text))
+                return true;
+
+            DialogResult result = MessageBox.Show(
+                "Сохранить изменения?",
+                "Подтверждение",
+                MessageBoxButtons.YesNoCancel,
+                MessageBoxIcon.Question);
+
+            if (result == DialogResult.Yes)
+            {
+                SaveButton();
+                return true;
+            }
+            else if (result == DialogResult.No)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
         private void StartButton()
         {
-            DataGridView.Rows.Clear();
+            dgvResults.Rows.Clear();
 
-            if (string.IsNullOrWhiteSpace(txtInput.Text))
+            string input = txtInput.Text;
+
+            if (string.IsNullOrWhiteSpace(input))
             {
-                MessageBox.Show("Введите строку");
+                dgvResults.Rows.Add("", "", "Введите код для анализа");
                 return;
             }
 
-            try
+            var tokens = Lexer.Tokenize(input);
+            Parser parser = new Parser(tokens);
+            parser.Parse();
+
+            foreach (var err in parser.Errors)
             {
-                Parser parser = new Parser(txtInput.Text);
-                parser.Parse();
-
-                if (parser.Errors.Count == 0)
-                {
-                    MessageBox.Show(this, "Ошибок нет");
-                }
-                else
-                {
-                    foreach (var err in parser.Errors)
-                    {
-                        int rowIndex = DataGridView.Rows.Add(
-                            err.Fragment,
-                            $"Строка {err.Line}, позиция {err.Column}",
-                            err.Message
-                        );
-
-                        DataGridView.Rows[rowIndex].Tag = err;
-                    }
-
-                    MessageBox.Show($"Найдено ошибок: {parser.Errors.Count}");
-                }
+                dgvResults.Rows.Add(err.Fragment, $"строка {err.Line}, позиция {err.Position}", err.Description);
             }
-            catch (Exception ex)
+
+            if (parser.Errors.Count == 0)
             {
-                MessageBox.Show(ex.Message);
+                dgvResults.Rows.Add("✓", "", "Ошибок не найдено");
+            }
+            else
+            {
+                dgvResults.Rows.Add("═══", "", $"Всего ошибок: {parser.Errors.Count}");
             }
         }
         private void OpenButton()
         {
+            if (!AskToSave())
+                return;
+
             OpenFileDialog openFile = new OpenFileDialog();
             openFile.Filter = "Text Files (*.txt)|*.txt|All files (*.*)|*.*";
-
             if (openFile.ShowDialog() == DialogResult.OK)
             {
                 txtInput.Text = System.IO.File.ReadAllText(openFile.FileName);
@@ -83,7 +100,11 @@ namespace new2026
         }
         private void AddButton()
         {
-            txtInput.Text = "";
+            if (AskToSave())
+            {
+                txtInput.Text = "";
+                _currentFilePath = "";
+            }
         }
         private void SaveButton()
         {
@@ -160,6 +181,10 @@ namespace new2026
         }
 
 
+        private void StartButton_Click(object sender, EventArgs e)
+        {
+            StartButton();
+        }
 
         private void btnAdd_Click(object sender, EventArgs e)
         {
@@ -400,36 +425,67 @@ namespace new2026
         {
             SaveButton();
         }
-
-
-        private void btnStart_Click_1(object sender, EventArgs e)
-        {
-            StartButton();
-        }
-        private void DataGridView_CellClick(object sender, DataGridViewCellEventArgs e)
+        private void dgvResults_CellClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0) return;
 
-            var row = DataGridView.Rows[e.RowIndex];
+            string loc = dgvResults.Rows[e.RowIndex].Cells[1].Value?.ToString();
 
-            if (row.Tag is ParseError err)
+            if (string.IsNullOrEmpty(loc) || loc.Contains("Всего ошибок") || loc.Contains("Ошибок не найдено"))
             {
-                int index = err.Index;
+                return;
+            }
 
-                if (index >= txtInput.TextLength)
-                    index = txtInput.TextLength - 1;
+            try
+            {
+                var parts = loc.Split(new char[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
 
-                if (index < 0)
-                    index = 0;
+                if (parts.Length >= 4 && parts[0] == "строка" && parts[2] == "позиция")
+                {
+                    int line = int.Parse(parts[1]);
+                    int pos = int.Parse(parts[3]);
 
-                txtInput.Focus();
-                txtInput.SelectionStart = index;
-                txtInput.SelectionLength = err.Length > 0 ? err.Length : 1;
+                    int index = GetIndex(line, pos);
 
-                txtInput.ScrollToCaret();
+                    txtInput.Focus();
+                    txtInput.SelectionStart = index;
+                    txtInput.SelectionLength = 1;
+                }
+            }
+            catch
+            {
             }
         }
-    }
 
+        private int GetIndex(int line, int pos)
+        {
+            int currentLine = 1;
+            int index = 0;
+
+            foreach (char c in txtInput.Text)
+            {
+                if (currentLine == line)
+                    break;
+
+                if (c == '\n')
+                    currentLine++;
+
+                index++;
+            }
+
+            return index + pos - 1;
+        }
+
+
+        private void btnStart_Click(object sender, EventArgs e)
+        {
+            StartButton();
+        }
+
+        private void Start_Click_1(object sender, EventArgs e)
+        {
+            StartButton();
+        }
+    }
 
 }
