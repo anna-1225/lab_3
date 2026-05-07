@@ -265,7 +265,6 @@ public class Parser
 
         while (!IsAtEnd)
         {
-            // Защита от бесконечного цикла
             if (_position == lastPosition)
             {
                 Advance();
@@ -273,7 +272,6 @@ public class Parser
             }
             lastPosition = _position;
 
-            // Пропускаем точки с запятой между выражениями
             while (Match(Lexer.TokenType.Semicolon, ";"))
             {
                 lastPosition = _position;
@@ -281,12 +279,10 @@ public class Parser
 
             if (IsAtEnd) break;
 
-            // Пропускаем ошибочные токены в начале выражения
             SkipErrorTokens();
 
             if (IsAtEnd) break;
 
-            // Проверяем, что текущий токен - идентификатор (начало выражения)
             if (!Check(Lexer.TokenType.Identifier))
             {
                 if (Check(Lexer.TokenType.Operator))
@@ -305,8 +301,6 @@ public class Parser
                 }
             }
 
-            // Парсим одно выражение
-            // 1. Идентификатор
             if (!Match(Lexer.TokenType.Identifier))
             {
                 Advance();
@@ -316,7 +310,6 @@ public class Parser
 
             _lastValidTokenBeforeSemicolon = _tokens[_position - 1];
 
-            // 2. Оператор присваивания '='
             if (!Match(Lexer.TokenType.Operator, "="))
             {
                 if (Check(Lexer.TokenType.Operator, "=="))
@@ -330,7 +323,6 @@ public class Parser
                 }
                 hasError = true;
 
-                // Пропускаем до ';' или конца
                 while (!IsAtEnd && !Check(Lexer.TokenType.Semicolon))
                 {
                     Advance();
@@ -338,8 +330,7 @@ public class Parser
                 continue;
             }
 
-            // 3. Условное выражение (value_if_true if condition else value_if_false)
-            // value_if_true
+
             if (!ParseOperand())
             {
                 AddError("Ожидался операнд (значение при true)", Current);
@@ -361,17 +352,14 @@ public class Parser
                 hasError = true;
             }
 
-            // condition
             if (!ParseLogicalExpression())
             {
-                // Пропускаем до 'else', ';' или конца
                 while (!IsAtEnd && !Check(Lexer.TokenType.Else) && !Check(Lexer.TokenType.Semicolon))
                 {
                     Advance();
                 }
             }
 
-            // else
             if (Match(Lexer.TokenType.Else))
             {
                 if (!ParseOperand())
@@ -390,7 +378,6 @@ public class Parser
                 }
             }
 
-            // 4. Пропускаем всё до точки с запятой
             while (!IsAtEnd && !Check(Lexer.TokenType.Semicolon))
             {
                 if (Check(Lexer.TokenType.Error))
@@ -410,7 +397,6 @@ public class Parser
                 }
             }
 
-            // 5. Проверяем точку с запятой
             if (!Match(Lexer.TokenType.Semicolon, ";"))
             {
                 if (IsAtEnd)
